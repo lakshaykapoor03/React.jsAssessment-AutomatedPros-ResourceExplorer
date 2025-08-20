@@ -1,0 +1,24 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.alive {
+  background: var(--alive-bg);
+  color: var(--alive-fg);
+  border-color: color-mix(in oklab, var(--alive-fg) 20%, transparent);
+}
+.dead {
+  background: var(--dead-bg);
+  color: var(--dead-fg);
+  border-color: color-mix(in oklab, var(--dead-fg) 20%, transparent);
+}
+.unknown {
+  background: var(--unknown-bg);
+  color: var(--unknown-fg);
+  border-color: color-mix(in oklab, var(--unknown-fg) 20%, transparent);
+}

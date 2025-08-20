@@ -1,95 +1,248 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useFavorites } from "@/lib/favorites";
+import { CharacterCard } from "@/components/CharacterCard";
+import { useCharacters } from "@/lib/hooks";
+import homeStyles from "./home.module.css";
+
+const SEARCH_DEBOUNCE_MS = 350;
+
+function useDebouncedValue<T>(value: T, delayMs: number) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(id);
+  }, [value, delayMs]);
+  return debounced;
+}
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const params = useSearchParams();
+  const router = useRouter();
+  const { ids: favoriteIds, isFavorite, toggle } = useFavorites();
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+  const qParam = params.get("q") ?? "";
+  const pageParam = Math.max(1, Number(params.get("page")) || 1);
+  const statusParam = params.get("status") ?? "";
+  const speciesParam = params.get("species") ?? "";
+  const sortParam = params.get("sort") ?? "name"; // name | id
+  const showFavOnly = params.get("fav") === "1";
+
+  const [q, setQ] = useState(qParam);
+  const debouncedQ = useDebouncedValue(q, SEARCH_DEBOUNCE_MS);
+  const lastAppliedQRef = useRef(qParam);
+
+  const replaceParams = useCallback(
+    (mutate: (usp: URLSearchParams) => void) => {
+      const current = params.toString();
+      const usp = new URLSearchParams(current);
+      mutate(usp);
+      const next = usp.toString();
+      if (next === current) return;
+      const href = next ? `/?${next}` : "/";
+      router.replace(href);
+    },
+    [params]
+  );
+
+  useEffect(() => {
+    // Only update URL and reset page when the debounced search value truly changed
+    if (debouncedQ === lastAppliedQRef.current) return;
+    replaceParams((usp) => {
+      if (debouncedQ) usp.set("q", debouncedQ);
+      else usp.delete("q");
+      usp.set("page", "1");
+    });
+    lastAppliedQRef.current = debouncedQ;
+  }, [debouncedQ, replaceParams]);
+
+  const query = useCharacters({
+    page: pageParam,
+    name: qParam || undefined,
+    status: statusParam || undefined,
+    species: speciesParam || undefined,
+  });
+
+  const results = useMemo(() => {
+    const items = (query.data?.results ?? []).slice();
+    const filtered = showFavOnly
+      ? items.filter((c) => favoriteIds.has(c.id))
+      : items;
+    if (sortParam === "name")
+      filtered.sort((a, b) => a.name.localeCompare(b.name));
+    if (sortParam === "id") filtered.sort((a, b) => a.id - b.id);
+    return filtered;
+  }, [query.data, showFavOnly, favoriteIds, sortParam]);
+
+  // Restore scroll position after navigating back
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("list:viewstate");
+      if (!raw) return;
+      const { scrollY, focusedId } = JSON.parse(raw) as { scrollY: number; focusedId?: number };
+      requestAnimationFrame(() => {
+        if (typeof scrollY === "number") {
+          window.scrollTo(0, scrollY);
+        }
+        if (focusedId) {
+          const el = document.querySelector(`[data-row-id="${focusedId}"] a`);
+          if (el && el instanceof HTMLElement) el.focus();
+        }
+        sessionStorage.removeItem("list:viewstate");
+      });
+    } catch {}
+  }, [query.data]);
+
+  const setParam = useCallback(
+    (key: string, value?: string) => {
+      replaceParams((usp) => {
+        const oldPage = usp.get("page");
+        if (value && value.length) usp.set(key, value);
+        else usp.delete(key);
+        if (key === "q" || key === "status" || key === "species") {
+          usp.set("page", "1");
+        } else if (!usp.get("page") && oldPage) {
+          usp.set("page", oldPage);
+        }
+      });
+    },
+    [replaceParams]
+  );
+
+  const totalPages = query.data?.info?.pages ?? 1;
+
+  useEffect(() => {
+    try {
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+        return () => { history.scrollRestoration = 'auto'; };
+      }
+    } catch {}
+  }, []);
+
+  return (
+    <div className={homeStyles.container}>
+      <section className={homeStyles.toolbar}>
+        <input
+          aria-label="Search by name"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search characters..."
+          className={homeStyles.control}
+          style={{ minWidth: 240 }}
+        />
+        <select
+          aria-label="Status filter"
+          value={statusParam}
+          onChange={(e) => setParam("status", e.target.value)}
+          className={homeStyles.control}
+        >
+          <option value="">All statuses</option>
+          <option value="alive">Alive</option>
+          <option value="dead">Dead</option>
+          <option value="unknown">Unknown</option>
+        </select>
+        <input
+          aria-label="Species filter"
+          placeholder="Species"
+          value={speciesParam}
+          onChange={(e) => setParam("species", e.target.value)}
+          className={homeStyles.control}
+          style={{ minWidth: 160 }}
+        />
+        <select
+          aria-label="Sort"
+          value={sortParam}
+          onChange={(e) => setParam("sort", e.target.value)}
+          className={homeStyles.control}
+        >
+          <option value="name">Sort: Name</option>
+          <option value="id">Sort: ID</option>
+        </select>
+        <label className={homeStyles.checkbox}>
+          <input
+            type="checkbox"
+            checked={showFavOnly}
+            onChange={(e) =>
+              setParam("fav", e.target.checked ? "1" : undefined)
+            }
+          />
+          Favorites only
+        </label>
+      </section>
+
+      {query.isLoading && (
+        <div role="status" aria-live="polite" className={homeStyles.list}>
+       {Array(20).fill("").map((_, i) => <div key={i} className={homeStyles.skeleton} />)}
+         
         </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      )}
+
+      {query.isError && (
+        <div role="alert" className={homeStyles.errorBox}>
+          <p style={{ marginBottom: 8 }}>Failed to load</p>
+          <button
+            onClick={() => {
+              const usp = new URLSearchParams(params.toString());
+              router.replace(`/?${usp.toString()}`);
+            }}
+            className={homeStyles.btn}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {!query.isLoading && !query.isError && results.length === 0 && (
+        <p style={{ color: "var(--muted)" }}>
+          No results. Try changing search or filters.
+        </p>
+      )}
+
+      <section className={homeStyles.list}>
+        {results.map((c) => (
+          <CharacterCard
+            key={c.id}
+            id={c.id}
+            name={c.name}
+            image={c.image}
+            status={c.status}
+            species={c.species}
+            isFavorite={isFavorite(c.id)}
+            onToggleFavorite={() => toggle(c.id)}
+            onNavigate={(id) => {
+              try {
+                sessionStorage.setItem(
+                  "list:viewstate",
+                  JSON.stringify({ scrollY: window.scrollY, focusedId: id })
+                );
+              } catch {}
+            }}
           />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        ))}
+      </section>
+
+      <nav aria-label="Pagination" className={homeStyles.pagination}>
+        <button
+          disabled={pageParam <= 1}
+          onClick={() => setParam("page", String(pageParam - 1))}
+          className={homeStyles.btn}
         >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          Previous
+        </button>
+        <span className={homeStyles.muted}>
+          Page {pageParam} of {totalPages}
+        </span>
+        <button
+          disabled={pageParam >= totalPages}
+          onClick={() => setParam("page", String(pageParam + 1))}
+          className={homeStyles.btn}
         >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          Next
+        </button>
+      </nav>
     </div>
   );
 }

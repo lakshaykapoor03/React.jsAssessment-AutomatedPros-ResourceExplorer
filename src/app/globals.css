@@ -1,13 +1,36 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #ffffff;
+  --bg-elev: #f8f8f8;
+  --fg: #111111;
+  --muted: #666666;
+  --primary: #0070f3;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-700: #374151;
+  /* status colors */
+  --alive-bg: #dcfce7; /* green-100 */
+  --alive-fg: #166534; /* green-800 */
+  --dead-bg: #fee2e2; /* red-100 */
+  --dead-fg: #991b1b; /* red-800 */
+  --unknown-bg: #e5e7eb; /* gray-200 */
+  --unknown-fg: #374151; /* gray-700 */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html[data-theme="dark"] {
+  --bg: #0b0b0b;
+  --bg-elev: #141414;
+  --fg: #f3f4f6;
+  --muted: #a3a3a3;
+  --primary: #60a5fa;
+  --gray-200: #1f2937;
+  --gray-300: #374151;
+  --gray-700: #d1d5db;
+  --alive-bg: #052e16; /* deep green */
+  --alive-fg: #86efac; /* green-300 */
+  --dead-bg: #450a0a; /* deep red */
+  --dead-fg: #fecaca; /* red-200 */
+  --unknown-bg: #111827; /* gray-900-ish */
+  --unknown-fg: #d1d5db; /* gray-300 */
 }
 
 html,
@@ -17,11 +40,46 @@ body {
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  background: var(--bg);
+  color: var(--fg);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+button {
+  cursor: pointer;
+}
+input,
+select,
+button {
+  font: inherit;
+  color: inherit;
+}
+input[type="checkbox"] {
+  accent-color: var(--primary);
+}
+.appHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--gray-200);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.appTitle {
+  font-size: 16px;
+  font-weight: 600;
+}
+.spacer {
+  flex: 1;
+}
+.appMain {
+  padding: 16px;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 * {
@@ -35,8 +93,8 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+@media (prefers-reduced-motion: no-preference) {
+  a {
+    transition: color 0.15s ease;
   }
 }

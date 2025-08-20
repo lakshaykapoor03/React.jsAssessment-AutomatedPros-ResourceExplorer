@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Providers, ThemeScript, ThemeToggle } from "./providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,9 +24,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {children}
+        <Providers>
+          <header className="appHeader">
+            <h1 className="appTitle">Resource Explorer — Rick & Morty</h1>
+            <div className="spacer" />
+            <ThemeToggle />
+          </header>
+          <main className="appMain">{children}</main>
+        </Providers>
       </body>
     </html>
   );

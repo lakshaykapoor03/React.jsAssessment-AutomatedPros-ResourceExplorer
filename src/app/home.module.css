@@ -1,0 +1,61 @@
+.container {
+  display: grid;
+  gap: 12px;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.control {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--gray-300);
+  background: var(--bg);
+  color: var(--fg);
+}
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--gray-300);
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+.list {
+  display: grid;
+  gap: 12px;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--gray-300);
+  background: var(--bg);
+  color: var(--fg);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.errorBox {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+}
+.skeleton {
+  height: 92px;
+  border-radius: 10px;
+  background: var(--bg-elev);
+  border: 1px solid var(--gray-200);
+}
+.muted {
+  color: var(--muted);
+}
