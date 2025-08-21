@@ -44,7 +44,7 @@ export default function HomeClient() {
       const href = next ? `/?${next}` : "/";
       router.replace(href);
     },
-    [params]
+    [params, router]
   );
 
   useEffect(() => {
@@ -79,7 +79,17 @@ export default function HomeClient() {
     try {
       const raw = sessionStorage.getItem("list:viewstate");
       if (!raw) return;
-      const { scrollY, focusedId } = JSON.parse(raw) as { scrollY: number; focusedId?: number };
+      let parsed: { scrollY: number; focusedId?: number } | null = null;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        parsed = null;
+      }
+      if (!parsed) {
+        sessionStorage.removeItem("list:viewstate");
+        return;
+      }
+      const { scrollY, focusedId } = parsed;
       requestAnimationFrame(() => {
         if (typeof scrollY === "number") {
           window.scrollTo(0, scrollY);
@@ -249,5 +259,3 @@ export default function HomeClient() {
     </div>
   );
 }
-
-

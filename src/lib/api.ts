@@ -1,4 +1,3 @@
-import { z } from "zod";
 
 const BASE_URL = "https://rickandmortyapi.com/api";
 
@@ -20,36 +19,25 @@ async function request<T>(
 }
 
 // Rick & Morty types
-export const CharacterSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  status: z.string(),
-  species: z.string(),
-  type: z.string(),
-  gender: z.string(),
-  origin: z.object({ name: z.string(), url: z.string() }),
-  location: z.object({ name: z.string(), url: z.string() }),
-  image: z.string(),
-  episode: z.array(z.string()),
-  url: z.string(),
-  created: z.string(),
-});
+export type Character = {
+  id: number;
+  name: string;
+  status: string;
+  species: string;
+  type: string;
+  gender: string;
+  origin: { name: string; url: string };
+  location: { name: string; url: string };
+  image: string;
+  episode: string[];
+  url: string;
+  created: string;
+};
 
-export type Character = z.infer<typeof CharacterSchema>;
-
-const InfoSchema = z.object({
-  count: z.number(),
-  pages: z.number(),
-  next: z.string().nullable(),
-  prev: z.string().nullable(),
-});
-
-export const CharactersResponseSchema = z.object({
-  info: InfoSchema,
-  results: z.array(CharacterSchema),
-});
-
-export type CharactersResponse = z.infer<typeof CharactersResponseSchema>;
+export type CharactersResponse = {
+  info: { count: number; pages: number; next: string | null; prev: string | null };
+  results: Character[];
+};
 
 export async function fetchCharacters(
   params: {
@@ -66,16 +54,14 @@ export async function fetchCharacters(
   if (params.status) search.set("status", params.status);
   if (params.species) search.set("species", params.species);
 
-  const json = await request<unknown>(`character?${search.toString()}`, {
+  return request<CharactersResponse>(`character?${search.toString()}`, {
     signal,
   });
-  return CharactersResponseSchema.parse(json);
 }
 
 export async function fetchCharacter(
   id: string,
   signal?: AbortSignal
 ): Promise<Character> {
-  const json = await request<unknown>(`character/${id}`, { signal });
-  return CharacterSchema.parse(json);
+  return request<Character>(`character/${id}`, { signal });
 }

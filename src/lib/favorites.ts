@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "favorites:characters";
 
@@ -9,7 +9,9 @@ export function readFavoriteIds(): Set<number> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return new Set();
-    const arr = JSON.parse(raw) as number[];
+    let arr: number[] | null = null;
+    try { arr = JSON.parse(raw) as number[]; } catch { arr = null; }
+    if (!Array.isArray(arr)) return new Set();
     return new Set(arr);
   } catch {
     return new Set();

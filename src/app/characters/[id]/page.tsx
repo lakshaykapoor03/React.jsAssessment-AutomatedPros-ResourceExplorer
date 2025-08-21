@@ -1,5 +1,3 @@
-"use client";
-
 import CharacterDetailClient from "./view.client";
 
 export default async function CharacterDetailPage({
